@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  progressByElement ProgressByElement[]
+  quizAttempts      QuizAttempt[]
+  flashcardReviews  FlashcardReview[]
+}
+
+model Element {
+  id            Int     @id
+  atomicNumber Int    @unique
+  symbol        String @unique
+  name          String
+  atomicWeight  Float?
+  period        Int
+  group         Int?   // Some may be unknown
+  category      String // e.g., "Alkali metal"
+  color         String // UI color
+}
+
+model ProgressByElement {
+  id            String   @id @default(cuid())
+  userId        String
+  elementId     Int
+  correctCount  Int      @default(0)
+  incorrectCount Int     @default(0)
+  lastAttemptAt DateTime? 
+
+  user          User     @relation(fields: [userId], references: [id])
+  element       Element  @relation(fields: [elementId], references: [id])
+
+  @@unique([userId, elementId])
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  elementId   Int
+  promptType  String   // "NAME_TO_SYMBOL" | "SYMBOL_TO_NAME"
+  answer      String
+  correct     Boolean
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+  element     Element  @relation(fields: [elementId], references: [id])
+}
+
+model FlashcardReview {
+  id          String @id @default(cuid())
+  userId      String
+  elementId   Int
+  status      String // "KNOW" | "DONT_KNOW"
+  createdAt   DateTime @default(now())
+
+  user        User    @relation(fields: [userId], references: [id])
+  element     Element @relation(fields: [elementId], references: [id])
+
+  @@unique([userId, elementId, status])
+}
